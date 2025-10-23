@@ -1,48 +1,38 @@
-# 🎮 Jeu Gagnant - Plateforme de Jeux Concours
+# 🎮 Module "Jeu Gagnant" pour PrestaShop 1.7
 
 ![PrestaShop](https://img.shields.io/badge/PrestaShop-1.7%2B-orange)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-blue)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-green)
+![License](https://img.shields.io/badge/Licence-MIT-yellow)
 
 ## 📋 Description
 
-**Jeu Gagnant** est une plateforme e-commerce développée sous PrestaShop, spécialisée dans l'organisation de jeux concours et de ventes promotionnelles. Cette solution permet aux entreprises de créer des expériences engageantes pour leurs clients avec des systèmes de jeux intégrés.
+Module PrestaShop qui permet d'organiser un jeu concours simple où les visiteurs tentent de deviner un numéro gagnant pour obtenir un code promo. Parfait pour booster l'engagement et collecter des emails.
 
 ## ✨ Fonctionnalités
 
-### 🎯 Fonctionnalités Principales
-- **Système de jeux concours** intégré
-- **Tirage au sort automatisé**
-- **Gestion des participants**
-- **Tableaux de classement en temps réel**
-- **Système de récompenses et lots**
+### 🎯 Front Office
+- **Popup automatique** sur la page d'accueil
+- **Formulaire de participation** avec email
+- **Jeu de devinette** (nombre entre 1 et 10)
+- **Affichage du code promo** en cas de victoire
+- **Expérience utilisateur fluide** et responsive
 
-### 🛍️ E-commerce
-- Catalogue produits avancé
-- Paiements sécurisés multiples
-- Gestion des stocks en temps réel
-- Promotions et codes de réduction
-- Interface responsive
-
-### 📊 Administration
-- Dashboard analytique
-- Gestion des utilisateurs
-- Suivi des performances des jeux
-- Export de données participants
-- Rapports détaillés
+### ⚙️ Back Office
+- **Gestion des participants** avec liste complète
+- **Configuration facile** du jeu
+- **Statistiques** des participations
+- **Contrôle des dates** de validité du jeu
+- **Activation/Désactivation** rapide
 
 ## 🚀 Installation
 
 ### Pré-requis
-- PHP 7.4 ou supérieur
-- MySQL 5.7 ou supérieur
-- Apache/Nginx avec mod_rewrite
-- Composer
-- Node.js (optionnel pour le développement)
+- PrestaShop 1.7.x ou supérieur
+- PHP 7.4+
+- MySQL 5.7+
 
-### Étapes d'installation
-
-1. **Cloner le projet**
+### Installation manuelle
+1. **Télécharger le module**
    ```bash
    git clone https://github.com/Ayaaaziz12/Jeu-Gagnant.git
-   cd Jeu-Gagnant
