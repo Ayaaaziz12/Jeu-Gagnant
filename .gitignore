@@ -1,0 +1,32 @@
+# Cache
+/var/cache/*
+/var/logs/*
+!var/cache/.gitkeep
+!var/logs/.gitkeep
+
+# Configuration sensible
+/app/config/parameters.php
+/config/settings.inc.php
+
+# Fichiers uploadés
+/img/*
+!img/.gitkeep
+/modules/*/vendor/
+
+# Node modules
+/node_modules/
+
+# IDE
+/.idea/
+*.swp
+*.swo
+
+# Environnement de développement
+/docker-compose.override.yml
+
+# Fichiers de sauvegarde
+*.backup
+*.zip
+
+# Fichiers de cache supplémentaires
+/var/sessions/*
