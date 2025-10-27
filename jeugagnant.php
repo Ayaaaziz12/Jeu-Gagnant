@@ -32,20 +32,45 @@ class Jeugagnant extends Module
         $this->confirmUninstall = $this->l('Êtes-vous sûr de vouloir désinstaller ce module ?');
     }
 
-    public function install()
-    {
-        return parent::install() 
-            && $this->registerHook('displayHeader')
-            && $this->registerHook('displayHome')
-            && $this->registerHook('displayFooter')
-            && $this->installDb();
+public function install()
+{
+    return parent::install() 
+        && $this->registerHook('displayHeader')
+        && $this->registerHook('displayHome')
+        && $this->registerHook('displayFooter')
+        && $this->installDb()
+        && $this->installAdminTab();
+}
+private function installAdminTab()
+{
+    $tab = new Tab();
+    $tab->class_name = 'AdminJeuGagnant';
+    $tab->module = $this->name;
+    $tab->id_parent = (int)Tab::getIdFromClassName('SELL'); // Ou 'CONFIGURE' selon votre PrestaShop
+    $tab->name = array();
+    
+    foreach (Language::getLanguages(true) as $lang) {
+        $tab->name[$lang['id_lang']] = 'Jeu Gagnant';
     }
+    
+    return $tab->add();
+}
 
-    public function uninstall()
-    {
-        return parent::uninstall() 
-            && $this->uninstallDb();
+public function uninstall()
+{
+    return parent::uninstall() 
+        && $this->uninstallDb()
+        && $this->uninstallAdminTab();
+}
+private function uninstallAdminTab()
+{
+    $id_tab = (int)Tab::getIdFromClassName('AdminJeuGagnant');
+    if ($id_tab) {
+        $tab = new Tab($id_tab);
+        return $tab->delete();
     }
+    return true;
+}
 
     private function installDb()
     {
@@ -95,7 +120,7 @@ public function hookDisplayHome($params)
     
     $test_content = '
     <div style="background: red; color: white; padding: 20px; margin: 20px 0; text-align: center; border: 3px solid yellow;">
-        <h3>🎯 TEST HOOK DISPLAYHOME - VISIBLE</h3>
+        <h3> TEST HOOK DISPLAYHOME - VISIBLE</h3>
         <p>Si vous voyez ce message ROUGE, le hook displayHome fonctionne</p>
         <p>Module: ' . $this->name . ' | Actif: ' . ($this->isModuleActive() ? 'OUI' : 'NON') . '</p>
     </div>
@@ -138,20 +163,179 @@ public function hookDisplayHome($params)
         return Db::getInstance()->insert('jeu_gagnant_participations', $data);
     }
 
-    public function getContent()
-    {
-        // Traitement du formulaire de configuration
-        if (Tools::isSubmit('saveConfig')) {
-            $result = $this->saveConfiguration();
-            if ($result) {
-                return $result . $this->renderConfigurationForm();
-            }
-        }
-        
-        // Affichage du formulaire de configuration
-        return $this->renderConfigurationForm();
+   public function getContent()
+{
+    $output = '';
+    
+    // Traitement du formulaire de configuration
+    if (Tools::isSubmit('saveConfig')) {
+        $output .= $this->saveConfiguration();
     }
+    
+    // Afficher TOUT sur une seule page
+    $output .= $this->renderConfigurationForm();
+    $output .= $this->renderQuickStats();
+    $output .= $this->renderRecentParticipations();
+    
+    return $output;
+}
+/**
+ * Affiche les statistiques rapides
+ */
+private function renderQuickStats()
+{
+    $stats = Db::getInstance()->getRow('
+        SELECT 
+            COUNT(*) as total_participations,
+            SUM(IF(result = "gagne", 1, 0)) as total_gagnants,
+            ROUND(SUM(IF(result = "gagne", 1, 0)) / COUNT(*) * 100, 2) as taux_reussite
+        FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+    ');
+    
+    $this->context->smarty->assign([
+        'stats' => $stats,
+        'admin_participations_url' => $this->context->link->getAdminLink('AdminJeuGagnant')
+    ]);
+    
+    return $this->display(__FILE__, 'views/templates/admin/quick_stats.tpl');
+}
 
+/**
+ * Affiche les participations récentes
+ */
+private function renderRecentParticipations()
+{
+    $participations = Db::getInstance()->executeS('
+        SELECT * FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+        ORDER BY date_participation DESC
+        LIMIT 5
+    ');
+    
+    $this->context->smarty->assign([
+        'participations' => $participations,
+        'winning_number' => (int)Configuration::get('JEU_GAGNANT_WINNING_NUMBER') ?: 5
+    ]);
+    
+    return $this->display(__FILE__, 'views/templates/admin/recent_participations.tpl');
+}
+private function renderTabs()
+{
+    $admin_config_url = $this->context->link->getAdminLink('AdminModules') . '&configure=' . $this->name;
+    $admin_participations_url = $this->context->link->getAdminLink('AdminJeuGagnant');
+    
+    $current_tab = Tools::getValue('tab', 'config');
+    
+    $tabs = [
+        'config' => [
+            'name' => $this->l('Configuration'),
+            'icon' => 'icon-cogs',
+            'url' => $admin_config_url . '&tab=config',
+            'active' => ($current_tab == 'config'),
+            'content' => $this->renderConfigurationForm()
+        ],
+        'participations' => [
+            'name' => $this->l('Participations'),
+            'icon' => 'icon-users', 
+            'url' => $admin_participations_url,
+            'active' => ($current_tab == 'participations'),
+            'content' => ''
+        ],
+        'stats' => [
+            'name' => $this->l('Statistiques'),
+            'icon' => 'icon-bar-chart',
+            'url' => $admin_config_url . '&tab=stats',
+            'active' => ($current_tab == 'stats'),
+            'content' => $this->renderStats()
+        ]
+    ];
+    
+    $this->context->smarty->assign([
+        'tabs' => $tabs,
+        'current_tab' => $current_tab,
+        'module_dir' => $this->_path
+    ]);
+    
+    return $this->display(__FILE__, 'views/templates/admin/tabs.tpl');
+}
+
+private function renderParticipationsList()
+{
+    // Rediriger vers le contrôleur admin
+    Tools::redirectAdmin($this->context->link->getAdminLink('AdminJeuGagnant'));
+}
+
+private function renderStats()
+{
+    // Statistiques générales
+    $stats_general = Db::getInstance()->getRow('
+        SELECT 
+            COUNT(*) as total_participations,
+            SUM(IF(result = "gagne", 1, 0)) as total_gagnants,
+            SUM(IF(result = "perdu", 1, 0)) as total_perdus,
+            ROUND(SUM(IF(result = "gagne", 1, 0)) / COUNT(*) * 100, 2) as taux_reussite,
+            MIN(date_participation) as date_premiere,
+            MAX(date_participation) as date_derniere
+        FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+    ');
+    
+    // Statistiques par jour
+    $stats_par_jour = Db::getInstance()->executeS('
+        SELECT 
+            DATE(date_participation) as date,
+            COUNT(*) as participations,
+            SUM(IF(result = "gagne", 1, 0)) as gagnants,
+            ROUND(SUM(IF(result = "gagne", 1, 0)) / COUNT(*) * 100, 2) as taux
+        FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+        GROUP BY DATE(date_participation)
+        ORDER BY date DESC
+        LIMIT 15
+    ');
+    
+    // Statistiques par numéro choisi
+    $stats_par_numero = Db::getInstance()->executeS('
+        SELECT 
+            number_chosen as numero,
+            COUNT(*) as total_choix,
+            SUM(IF(result = "gagne", 1, 0)) as gagnants,
+            ROUND(COUNT(*) / (SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`) * 100, 2) as pourcentage_choix,
+            ROUND(SUM(IF(result = "gagne", 1, 0)) / COUNT(*) * 100, 2) as taux_reussite
+        FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+        GROUP BY number_chosen
+        ORDER BY total_choix DESC
+    ');
+    
+    // Top 10 des emails (participations multiples)
+    $top_emails = Db::getInstance()->executeS('
+        SELECT 
+            email,
+            COUNT(*) as participations,
+            SUM(IF(result = "gagne", 1, 0)) as gagnants
+        FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+        GROUP BY email
+        HAVING COUNT(*) > 1
+        ORDER BY participations DESC
+        LIMIT 10
+    ');
+    
+    // Dernières participations
+    $recent_participations = Db::getInstance()->executeS('
+        SELECT * FROM `' . _DB_PREFIX_ . 'jeu_gagnant_participations`
+        ORDER BY date_participation DESC
+        LIMIT 10
+    ');
+    
+    $this->context->smarty->assign([
+        'stats_general' => $stats_general,
+        'stats_par_jour' => $stats_par_jour,
+        'stats_par_numero' => $stats_par_numero,
+        'top_emails' => $top_emails,
+        'recent_participations' => $recent_participations,
+        'winning_number' => (int)Configuration::get('JEU_GAGNANT_WINNING_NUMBER') ?: 5,
+        'module_dir' => $this->_path
+    ]);
+    
+    return $this->display(__FILE__, 'views/templates/admin/stats.tpl');
+}
     /**
      * Sauvegarde la configuration
      */
