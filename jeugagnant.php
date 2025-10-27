@@ -46,7 +46,7 @@ private function installAdminTab()
     $tab = new Tab();
     $tab->class_name = 'AdminJeuGagnant';
     $tab->module = $this->name;
-    $tab->id_parent = (int)Tab::getIdFromClassName('SELL'); // Ou 'CONFIGURE' selon votre PrestaShop
+    $tab->id_parent = (int)Tab::getIdFromClassName('SELL'); 
     $tab->name = array();
     
     foreach (Language::getLanguages(true) as $lang) {
